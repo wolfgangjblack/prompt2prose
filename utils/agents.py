@@ -1,16 +1,18 @@
 import json
 from abc import ABC, abstractmethod
-from typing import Any, Tuple
-from utils.api_utils import chat_with_gpt
+from typing import Any
+from utils.llm_utils import chat_with_gpt
 
 class Agent(ABC):
     def __init__(self,
                  system_prompt: str,
+                 llm: str = "gpt-3.5-turbo",
                  temperature: float = 0.0):
         
         self.system_prompt = system_prompt
         self.token_cost = 0.0
         self.temperature = temperature
+        self.llm = llm
     
     @abstractmethod
     def __call__(self, *args, **kwargs) -> Any:
@@ -20,7 +22,7 @@ class Agent(ABC):
         pass
 
     def describe(self) -> str:
-        return f"{self.__class__.__name__}\n {self.system_prompt}"
+        return f"{self.__class__.__name__}\n llm: {self.llm} -Note: Only GPT support atm \n Agentic Prompt:{self.system_prompt}\n"
     
     def get_cost(self):
         return self.token_cost

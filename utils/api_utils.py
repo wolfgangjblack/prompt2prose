@@ -1,17 +1,13 @@
-import os
-from openai import OpenAI
+from typing import Dict, List
+from pydantic import BaseModel, Field
 
-client = OpenAI(api_key=os.environ.get('OPENAI_KEY'))
+class BeatConfig(BaseModel):
+    beats: List[str] = Field(..., min_items=1)
+    gen_metadata_flag: bool = False
 
-def chat_with_gpt(messages, max_tokens=400, temperature=0.3, input_cost = .5/1e6, output_cost = 1.5/1e6):
-    """Calls the OpenAI Chat Completion API with the provided messages."""
-    completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        max_tokens=max_tokens,
-        temperature=temperature
-    )
-
-
-    cost = completion.usage.prompt_tokens * input_cost + completion.usage.completion_tokens * output_cost
-    return completion.choices[0].message.content.strip(), cost
+class StoryResponse(BaseModel):
+    final_story: str
+    final_story_word_count: int
+    generation_cost: Dict[str, float] 
+    generation_time: float
+    generation_metadata: dict = None
