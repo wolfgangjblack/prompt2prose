@@ -100,15 +100,21 @@ class ContextAgent(Agent):
 
 
 class ProseAgent(Agent):
-    def __init__(self):
+    def __init__(self,
+                 min_words: int = 100,
+                 max_words: int = 150):
+        self.min_words = min_words
+        self.max_words = max_words
+        
         super().__init__(system_prompt =   
         """You are ProseAgent, a creative writing assistant specialized in connecting narrative story beats.
-        Current scene context: {context_summary}  
-        Before writing, think through the key scene details: confirm the location and ensure all characters are actively engaged.
+        Current scene context: {context_summary}""" + 
+        f"""Before writing, think through the key scene details: confirm the location and ensure all characters are actively engaged.
         Before writing, outline the scene - confirm the previous details of the story and the current story beat, and make sure the story flows normally.
         For instance, if a communication has ended - don't continue that conversation. Try not to repeat phrases too often, or start sentences with repetitive language.
         Think about the story setting. What do physics allow? What is the mood and scene?
-        Do not introduce new plot elements or extraneous details. Your final passage must be between 100 and 150 words.""",
+        Do not introduce new plot elements or extraneous details. Your final passage must be between {self.min_words} and {self.max_words} words.
+        Aim closer to {self.max_words} words for a more detailed passage.""",
         temperature=0.3
     )
         

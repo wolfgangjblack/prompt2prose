@@ -24,7 +24,8 @@ class BeatToStory(BaseModel):
         if agents is None:
             self.agents = {
                 "context": ContextAgent(),
-                "prose": ProseAgent(),
+                "prose": ProseAgent(min_words=self.min_words_per_beat, 
+                             max_words=self.max_words_per_beat),
                 "story": StoryAgent(),
                 "length": LengthAgent(min_words=self.min_words_per_beat, 
                                     max_words=self.max_words_per_beat),
@@ -118,6 +119,7 @@ class BeatToStory(BaseModel):
                 self.generation_metadata["beat_" + str(i)] = {
                     "attempts": idx + 1,
                     "passage": generated_passage,
+                    "passage_length": len(generated_passage.split()),
                     "exceeded_max_attempts": idx + 1 == self.max_attempts_per_beat
                 }
                 break
