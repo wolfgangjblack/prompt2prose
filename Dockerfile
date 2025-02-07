@@ -18,4 +18,7 @@ COPY utils/ ./utils
 EXPOSE 8000
 
 #set to command to run the uvicorn server
-CMD ["python", "main.py"]
+# Add this before CMD
+RUN pwd && ls -la
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
