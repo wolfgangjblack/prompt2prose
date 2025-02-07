@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
-from utils.agents import context_agent, prose_agent, story_agent, length_agent, flow_agent
+from utils.agents import Agent, ContextAgent, FlowAgent, LengthAgent, ProseAgent, StoryAgent
 
 class BeatToStory(BaseModel):
     class Config:
@@ -13,14 +13,35 @@ class BeatToStory(BaseModel):
     edited_story: Optional[str] = ''
     beats: List[str] = []
     context: Dict[int, str] = {}
-    generation_metadata: Dict[int, str] = {}
-    token_costs: Dict[str, int] = {
-        "context_agent": 0,
-        "prose_agent": 0,
-        "story_agent": 0,
-        "flow_agent": 0,
-        "total": 0
-    }
+    generation_metadata: Dict[int, Any] = {}
+    agents: Dict[str, Agent] = {}
+        
+    def setup_pipeline(self, agents: Dict[str, Agent] | None = None):
+        """
+        Initialize agents for the story pipeline.
+        Can either use default agents or accept custom agents.
+        """
+        if agents is None:
+            self.agents = {
+                "context": ContextAgent(),
+                "prose": ProseAgent(),
+                "story": StoryAgent(),
+                "length": LengthAgent(min_words=self.min_words_per_beat, 
+                                    max_words=self.max_words_per_beat),
+                "flow": FlowAgent()
+            }
+        else:
+            self.agents = agents
+    
+    def describe_pipeline(self):
+            """Return description of all agents in pipeline order"""
+            return "\n\n".join(self.agents[name].describe() for name in self.agents.keys())
+    
+    def pipeline_cost(self):
+        """Return cost of all agents in pipeline order"""
+        cost_dict = {name: self.agents[name].token_cost for name in self.agents.keys()}
+        cost_dict["total"] = sum(cost_dict.values())
+        return cost_dict
 
     def get_context(self, verbose = False):
         """
@@ -30,7 +51,6 @@ class BeatToStory(BaseModel):
         - beats: A list of story beat strings.
         - context: A dictionary of context strings for each beat.
         - context_agent: An agent that generates context for a given beat.
-        - context_cost: The cost of generating context for a given beat.
         
         Returns:
         - A dictionary of context strings for each beat.
@@ -45,9 +65,8 @@ class BeatToStory(BaseModel):
         for i in range(len(self.beats) - 1):
             if verbose:
                 print(f"    crafting context on beat {i}")
-            context, context_cost = context_agent(self.beats[i], previous_context)
+            context = self.agents["context"](self.beats[i], previous_context)
             self.context[i] = context
-            self.token_cost["context_agent"] += context_cost
             previous_context = context
 
     def generate_story(self, verbose = False):
@@ -78,19 +97,17 @@ class BeatToStory(BaseModel):
             beat_b = self.beats[i + 1]
             
             for idx, _ in enumerate(range(self.max_attempts_per_beat)):
-                generated_passage, prose_cost = prose_agent(current_passage, beat_a, beat_b, context_summary=self.context[i])
-                # print(f"ProseAgent output (iteration {i+1}, attempt {attempt+1}):\n{generated_passage}\n")
-                self.token_cost["prose_agent"] += prose_cost
-                # Check consistency
-                consistency, story_cost = story_agent(generated_passage, [beat_a, beat_b])
+                generated_passage = self.agents["prose"](current_passage, beat_a, beat_b, context_summary=self.context[i])
+                if verbose:
+                    print(f"    ProseAgent output (iteration {i+1}, attempt {idx+1}):\n{generated_passage}\n")
+                consistency = self.agents['story'](generated_passage, [beat_a, beat_b])
                 # print(f"StoryAgent consistency check returned: {consistency}")
                 if consistency != "True":
                     if verbose:
                         print(f"        beat {i} | attempt: {idx} | Inconsistency detected; regenerating passage...")
                     continue  # Rerun prose_agent
-                self.token_cost["story_agent"] += story_cost
                 # Check length
-                length_ok = length_agent(generated_passage, self.min_words_per_beat, self.max_words_per_beat)
+                length_ok = self.agents['length'](generated_passage)
                 #
                 if not length_ok:
                     if verbose:
@@ -101,8 +118,6 @@ class BeatToStory(BaseModel):
                 self.generation_metadata["beat_" + str(i)] = {
                     "attempts": idx + 1,
                     "passage": generated_passage,
-                    "prose_cost": prose_cost,
-                    "story_cost": story_cost,
                     "exceeded_max_attempts": idx + 1 == self.max_attempts_per_beat
                 }
                 break
@@ -127,11 +142,8 @@ class BeatToStory(BaseModel):
         
         if verbose:
             print("Editing story...")
-        self.edited_story, flow_costs = flow_agent(self.story, self.max_words_per_beat * len(self.beats))
+        self.edited_story = self.agents['flow'](self.story, self.max_words_per_beat * len(self.beats))
         
-        self.token_cost["flow_agent"] = flow_costs
-        self.token_cost["total"] = sum(self.token_cost.values())
-
         return self.edited_story
 
     def pipe(self, verbose = False):
@@ -159,6 +171,9 @@ class BeatToStory(BaseModel):
     
     def _check_state(self):
         errors = []
+
+        if not self.agents:
+            errors.append("No agents provided. Run setup_pipeline() first.")
         
         if not self.beats:
             errors.append("No beats provided. Add beats before continuing.")
