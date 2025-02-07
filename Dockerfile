@@ -10,8 +10,8 @@ COPY requirements.txt .
 #Install package dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py ./
-
+#Copy the source code and utils
+COPY /src/main.py ./
 COPY utils/ ./utils
 
 #Run the application

@@ -1,4 +1,6 @@
+fastapi==0.115.8
 openai==1.61.0
 pydantic==2.10.6
 safetensors==0.5.2
 torch==2.6.0
+uvicorn==0.34.0
