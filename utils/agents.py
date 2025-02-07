@@ -158,7 +158,7 @@ def flow_agent(full_story, max_words=1500):
         "Check for dubious details. Do tools make sounds in space? Are the characters consistent? Are the locations accurate?"
         "Do not alter any factual details, change the location, or add new plot points—simply polish the text."
         "Try to maintain the original tone and mood of the story."
-        "Do not exceed {max_words} in your edited version."
+        "Try to aim for around {max_words} in your edited version."
     )
     user_prompt = (
         f"Review the following story and improve its overall narrative flow, avoiding repetitive sentence structures and dull language:\n\n\"{full_story}\"\n\n"
@@ -170,4 +170,4 @@ def flow_agent(full_story, max_words=1500):
         {"role": "user", "content": user_prompt}
     ]
     
-    return chat_with_gpt(messages, max_tokens = int(4/3* max_words), temperature=0.0)
+    return chat_with_gpt(messages, max_tokens = int(4/3* max_words+50), temperature=0.0)
