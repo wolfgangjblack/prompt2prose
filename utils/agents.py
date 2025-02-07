@@ -100,11 +100,14 @@ def story_agent(passage, beats):
     The agent returns exactly "True" if the passage is consistent with these conditions (i.e. it faithfully reflects
     either both beats or solely the second beat without extraneous details), or "False" if it does not.
     """
+
     system_message = (
-        "You are StoryAgent, a meticulous narrative consistency checker. Your task is to verify that the given passage "
-        "faithfully reflects the intended narrative focus. The passage is acceptable if it either reflects both story beats "
-        "or, at minimum, fully reflects the second beat. Do not allow extraneous details or hallucinations. "
-        "After reviewing, return ONLY the single word 'True' if the passage meets these conditions, or ONLY 'False' if it does not."
+        "You are StoryAgent, a narrative consistency checker. Your task is to verify that the given passage "
+        "adequately moves the story forward between these beats. The passage should:\n"
+        "1. Not contradict either beat\n"
+        "2. Make logical progress from the first beat toward the second\n"
+        "3. Not introduce major new elements not implied by the beats\n"
+        "Return ONLY 'True' if these conditions are met, or ONLY 'False' if not."
     )
     
     # Build the user prompt.
@@ -132,24 +135,19 @@ def length_agent(passage, min_words=100, max_words=150):
     Return ONLY "True" if the passage has between min_words and max_words (inclusive),
     otherwise return ONLY "False".
     """
-    system_message = (
-        "You are LengthAgent, an expert in concise prose evaluation. Your task is to assess whether a given passage meets a specific word count requirement. "
-        f"Return ONLY 'True' if the passage contains between {min_words} and {max_words} words (inclusive), or ONLY 'False' if it does not."
-    )
+
+    if min_words > max_words:
+        raise ValueError("Minimum words cannot be greater than maximum words.")
+    if min_words < 0 or max_words < 0:
+        raise ValueError("Word counts cannot be negative.")
+    if min_words == max_words: 
+        raise Warning("Minimum and maximum word counts are the same.")
     
     word_count = len(passage.split())
-    user_prompt = (
-        f"Examine the following passage:\n\"{passage}\"\n\n"
-        f"It contains {word_count} words. "
-        f"Return ONLY 'True' if the word count is between {min_words} and {max_words} inclusive, otherwise return ONLY 'False'."
-    )
-    
-    messages = [
-        {"role": "system", "content": system_message},
-        {"role": "user", "content": user_prompt}
-    ]
-
-    return chat_with_gpt(messages, temperature=0.0)
+    if word_count >= min_words and word_count <= max_words:
+        return "True"
+    else:
+        return "False"
 
 def flow_agent(full_story, max_words=1500):
     system_message = (
