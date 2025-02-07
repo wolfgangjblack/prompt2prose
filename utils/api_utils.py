@@ -1,5 +1,5 @@
 from pydantic import BaseModel
 
-class StarterConfig(BaseModel):
-    name: str
-    age: int
+class BeatConfig(BaseModel):
+    beats: list[str] = None
+    gen_metadata_flag: bool = False

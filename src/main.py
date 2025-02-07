@@ -6,8 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-BeatToStory = BeatToStory()
-
+beatbot = BeatToStory()
+beatbot.setup_pipeline()
 
 @app.get("/")
 async def root():
@@ -25,16 +25,36 @@ async def root():
 
 @app.get("/beat_to_story/")
 async def beat_to_story():
-    pass
+    return beatbot.describe_pipeline()
 
 @app.get("/metadata_to_story/")
 async def metadata_to_story():
     return {"message": "This endpoint is under construction."}
 
 @app.post("/beat_to_story_generate/")
-async def beat_to_story_generate(beats: list):
-    return BeatToStory.pipe(beats)
-
+async def beat_to_story_generate(BeatConfig):
+    
+    start_time = datetime.now()
+    
+    beatbot.pipe(BeatConfig.beats)
+    
+    end_time = datetime.now()
+    
+    if BeatConfig.gen_metadata_flag:
+        return {"final_story": beatbot.story,
+                "final_story_word_count": beatbot.story_length,
+                "generation_cost": beatbot.pipeline_cost,
+                "generation_time": end_time - start_time,
+                "generation_metadata": beatbot.generation_metadata
+                }
+    
+    else:
+        return {"final_story": beatbot.story,
+                "final_story_word_count": beatbot.story_length,
+                "generation_cost": beatbot.pipeline_cost,
+                "generation_time": end_time - start_time,
+                }
+        
 @app.post("/metadata_to_story_generate/")
 async def metadata_to_story_generate():
     return {"message": "This endpoint is under construction."}
