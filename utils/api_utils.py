@@ -16,11 +16,22 @@ class StoryResponse(BaseModel):
     generation_metadata: dict = None
 
 
-# class MetaDataConfig(config):
-#     setting: Dict[str | str] = Field(..., min_items=1)
-#     character: Dict[str | str] = Field(..., min_items=1)
-#     genre: Optional[str] = None
-#     style : Optional[str] = None
+class CharacterInfo(BaseModel):
+    name: str
+    profile: str
 
-# class BeatMetaConfig(BeatConfig):
-#     metadata: MetaDataConfig
+
+class SettingInfo(BaseModel):
+    location: str
+    notes: str
+
+
+class MetadataConfig(BaseModel):
+    setting: SettingInfo
+    characters: List[CharacterInfo]
+    genre: Optional[str] = None
+    style: Optional[str] = None
+
+
+class BeatMetadataConfig(BeatConfig):
+    user_metadata: MetadataConfig

@@ -4,7 +4,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
-from utils import BeatConfig, BeatToStory, StoryResponse
+from utils import (
+    BeatConfig,
+    BeatMetadataConfig,
+    BeatToStory,
+    MetadataAgent,
+    StoryResponse,
+    StyleGenreAgent,
+)
 
 app = FastAPI()
 app.add_middleware(
@@ -30,7 +37,6 @@ async def root():
         GET / - Returns this message.
         GET /docs - Returns the API documentation - will redirect to the github README.
         GET /beat_to_story/ - Returns the agentic pipeline for beat to story generation, including agents, llms, and prompts.
-        GET /metadata_to_story/ - Returns the agentic pipeline for metadata to story generation, including agents, llms, and prompts.
         POST /beat_to_story/generate. - Returns a json output with: a multi-agentic workflow story generated from a list of user provided beats, cost per agent in pipeline, story word count, and generation time.
         POST /metadata_to_story/generate/ - Returns a story generated from a list of user provided metadata.
     """
@@ -47,11 +53,6 @@ async def docs():
     return RedirectResponse(
         url="https://github.com/wolfgangjblack/prompt2prose/blob/main/README.md"
     )
-
-
-@app.get("/metadata_to_story/")
-async def metadata_to_story():
-    return {"message": "This endpoint is under construction."}
 
 
 @app.post("/beat_to_story/generate/", response_model=StoryResponse)
@@ -74,6 +75,33 @@ async def beat_to_story_generate(config: BeatConfig):
     )
 
 
-@app.post("/metadata_to_story/generate/")
-async def metadata_to_story_generate():
-    return {"message": "This endpoint is under construction."}
+@app.post("/metadata_to_story/generate/", response_model=StoryResponse)
+async def metadata_to_story_generate(config: BeatMetadataConfig):
+    start_time = datetime.now()
+    genre = config.user_metadata.genre
+    style = config.user_metadata.style
+
+    if genre:
+        beatbot.genre = genre
+        beatbot.agent[f"{genre}_genre"] = StyleGenreAgent(style_guide=genre)
+
+    if style:
+        beatbot.genre = genre
+        beatbot.agent[f"{style}_style"] = StyleGenreAgent(style_guide=style)
+
+    beatbot.metadata = config.user_metadata.model_dump()
+
+    beatbot.agent[f"meta"] = MetadataAgent()
+
+    beatbot.pipe()
+    end_time = datetime.now()
+
+    return StoryResponse(
+        final_story=beatbot.edited_story,
+        final_story_word_count=beatbot.story_length,
+        generation_cost=beatbot.pipeline_cost(),
+        generation_time=(end_time - start_time).total_seconds(),
+        generation_metadata=(
+            beatbot.generation_metadata if config.gen_metadata_flag else {}
+        ),
+    )

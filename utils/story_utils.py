@@ -101,14 +101,13 @@ class BeatToStory(BaseModel):
         if not self.context:
             raise ValueError("No context provided. Please run get_context() first.")
 
-        if MetadataAgent() not in self.agents.values():
+        if not any(isinstance(agent, MetadataAgent) for agent in self.agents.values()):
             raise ValueError(
                 "MetadataAgent not found in agents. Please add a MetadataAgent to the pipeline."
             )
-
         if verbose:
             print("Updating context with metadata...")
-            self.context = self.agents["metadata"](self.context, self.user_metadata)
+        self.context = self.agents["meta"](self.context, self.user_metadata)
 
     def generate_story(self, verbose=False):
         """
@@ -130,33 +129,24 @@ class BeatToStory(BaseModel):
             beat_b = self.beats[i + 1]
 
             for idx, _ in enumerate(range(self.max_attempts_per_beat)):
-                # Generate initial passage
                 generated_passage = self.agents["prose"](
                     current_passage, beat_a, beat_b, context_summary=self.context[i]
                 )
 
-                # Apply genre transformation if agent exists
+                if verbose:
+                    print(f"    ProseAgent output (iteration {i+1}, attempt {idx+1})")
+
+                # Apply style/genre transformations
                 if "genre" in self.agents:
                     if verbose:
-                        print(f"    Applying genre specifications to passage {i+1}")
-                    generated_passage = self.agents["genre"](
-                        generated_passage, self.genre
-                    )
+                        print(f"Applying {self.genre} genre transformation...")
+                    generated_passage = self.agents["genre"](generated_passage)
 
-                # Apply style transformation if agent exists
                 if "style" in self.agents:
                     if verbose:
-                        print(f"    Applying style specifications to passage {i+1}")
-                    generated_passage = self.agents["style"](
-                        generated_passage, self.style
-                    )
+                        print(f"Applying {self.style} stylistic transformation...")
+                    generated_passage = self.agents["style"](generated_passage)
 
-                if verbose:
-                    print(
-                        f"    ProseAgent output (iteration {i+1}, attempt {idx+1}):\n{generated_passage}\n"
-                    )
-
-                # Verify consistency
                 consistency = self.agents["story"](generated_passage, [beat_a, beat_b])
                 if consistency != "True":
                     if verbose:
@@ -165,14 +155,13 @@ class BeatToStory(BaseModel):
                         )
                     continue
 
-                # Check length
                 length_ok = self.agents["length"](generated_passage)
                 if not length_ok:
                     if verbose:
                         print(
                             f"        beat {i} | attempt: {idx} | Length requirement not met {len(generated_passage.split())}; regenerating passage..."
                         )
-                    continue
+                    continue  # Rerun prose_agent
 
                 # If both checks pass, store metadata and break
                 self.generation_metadata["beat_" + str(i)] = {
@@ -224,7 +213,9 @@ class BeatToStory(BaseModel):
         if self.context == {}:
             self.get_context(verbose=verbose)
 
-        if self.user_metadata and MetadataAgent() in self.agents.values():
+        if self.user_metadata and any(
+            isinstance(agent, MetadataAgent) for agent in self.agents.values()
+        ):
             self.update_context_with_meta(verbose=verbose)
 
         if self.story == "":

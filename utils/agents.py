@@ -323,12 +323,15 @@ class MetadataAgent(Agent):
                 enriched_context["characters"].append(enriched_char)
 
             beat_to_story_context[beat_num] = enriched_context
+        return beat_to_story_context
 
 
 class StyleGenreAgent(Agent):
     def __init__(self, style_guide: str):
         super().__init__(
-            system_prompt=f"""You are an expert {style_guide} editor with decades of experience. Your job is to aggressively rewrite passages to match the {style_guide} style perfectly.
+            system_prompt=f"""You are an expert {style_guide} editor with decades of experience.
+            Your job is to aggressively rewrite passages to match the {style_guide} style perfectly.
+            Before rewriting plan out the language and tone necessary for the {style_guide} style.
 
             When rewriting, consider:
             - Word choice and vocabulary specific to {style_guide}
@@ -338,18 +341,21 @@ class StyleGenreAgent(Agent):
 
             Examples of what this means:
             - For "noir": Use terse sentences, cynical tone, vivid sensory details, morally ambiguous descriptions
-            - For "romance": Focus on emotional states, physical reactions, relationship dynamics, intimate observations
             - For "horror": Emphasize dread, use unsettling imagery, focus on tension and unease
             - For "adventure": Dynamic action verbs, quick pacing, emphasis on physical movement and environment
-            - For "pirate english" : Use pirate slang, nautical terms, and a swashbuckling tone
+            - For "pirate" : Use pirate slang, nautical terms, and a swashbuckling tone
+            - For "screenplay": Story is entirely action lines, stage direction, and character dialogue in screenplay format
+            - For "newspaper": Use journalistic language, inverted pyramid structure, and objective reporting style
 
-            IMPORTANT: While maintaining the core story events and character actions, you should completely transform the STYLE of writing to match {style_guide}.""",
-            temperature=0.7,  # Higher temperature for more creative variation
+            IMPORTANT: While maintaining the core story events and character actions, you should completely transform the prose of writing to match {style_guide}.""",
+            temperature=0.0,  # Higher temperature for more creative variation
         )
+        self.style_guide = style_guide
 
-    def __call__(self, passage: str, style_guide: str) -> str:
+    def __call__(self, passage: str) -> str:
+        # No need for style_guide parameter since it's stored in the instance
         user_prompt = (
-            f'Rewrite this passage in pure {style_guide} style:\n"{passage}"\n\n'
+            f'Rewrite this passage in pure {self.style_guide} style:\n"{passage}"\n\n'
             "Be bold with your stylistic changes while keeping the same basic events and character actions.\n"
             f"Maintain approximately {len(passage.split())} words."
         )
@@ -359,6 +365,12 @@ class StyleGenreAgent(Agent):
             {"role": "user", "content": user_prompt},
         ]
 
-        response_text, cost = chat_with_gpt(messages, temperature=self.temperature)
+        response_text, cost = chat_with_gpt(
+            messages,
+            temperature=self.temperature,
+            max_tokens=int(
+                len(passage.split()) * 1.5
+            ),  # Give some room for style changes
+        )
         self.token_cost += cost
         return response_text
