@@ -78,20 +78,22 @@ async def beat_to_story_generate(config: BeatConfig):
 @app.post("/metadata_to_story/generate/", response_model=StoryResponse)
 async def metadata_to_story_generate(config: BeatMetadataConfig):
     start_time = datetime.now()
+
+    beatbot.beats = config.beats
     genre = config.user_metadata.genre
     style = config.user_metadata.style
 
     if genre:
         beatbot.genre = genre
-        beatbot.agent[f"{genre}_genre"] = StyleGenreAgent(style_guide=genre)
+        beatbot.agents[f"{genre}_genre"] = StyleGenreAgent(style_guide=genre)
 
     if style:
-        beatbot.genre = genre
-        beatbot.agent[f"{style}_style"] = StyleGenreAgent(style_guide=style)
+        beatbot.style = style
+        beatbot.agents[f"{style}_style"] = StyleGenreAgent(style_guide=style)
 
-    beatbot.metadata = config.user_metadata.model_dump()
+    beatbot.user_metadata = config.user_metadata.model_dump()
 
-    beatbot.agent[f"meta"] = MetadataAgent()
+    beatbot.agents[f"meta"] = MetadataAgent()
 
     beatbot.pipe()
     end_time = datetime.now()

@@ -137,15 +137,19 @@ class BeatToStory(BaseModel):
                     print(f"    ProseAgent output (iteration {i+1}, attempt {idx+1})")
 
                 # Apply style/genre transformations
-                if "genre" in self.agents:
+                if f"{self.genre}_genre" in self.agents.keys():
                     if verbose:
                         print(f"Applying {self.genre} genre transformation...")
-                    generated_passage = self.agents["genre"](generated_passage)
+                    generated_passage = self.agents[f"{self.genre}_genre"](
+                        generated_passage
+                    )
 
-                if "style" in self.agents:
+                if f"{self.style}_style" in self.agents.keys():
                     if verbose:
                         print(f"Applying {self.style} stylistic transformation...")
-                    generated_passage = self.agents["style"](generated_passage)
+                    generated_passage = self.agents[f"{self.style}_style"](
+                        generated_passage
+                    )
 
                 consistency = self.agents["story"](generated_passage, [beat_a, beat_b])
                 if consistency != "True":

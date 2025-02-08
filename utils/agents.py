@@ -368,9 +368,6 @@ class StyleGenreAgent(Agent):
         response_text, cost = chat_with_gpt(
             messages,
             temperature=self.temperature,
-            max_tokens=int(
-                len(passage.split()) * 1.5
-            ),  # Give some room for style changes
         )
         self.token_cost += cost
         return response_text
