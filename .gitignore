@@ -172,3 +172,6 @@ cython_debug/
 
 scratch/
 .vscode/
+
+.pre-commit-cache/
+.git/hooks/
