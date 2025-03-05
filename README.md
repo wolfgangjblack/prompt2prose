@@ -1,7 +1,7 @@
 # prompt2prose
 The prompt2prose system uses a light-weight multi-agentic pipeline to transform simple story beats into coherent, polished narratives.
 
-![prompt2prose](./assets/prompt2prose pipeline.png)
+![prompt2prose](./assets/prompt2prose_pipeline.png)
 
 This repo also contains a dockerfile users can download alongside the code and run the experiment with prompt2pose models. This docker will serve users with an agentic workflow which will generate stories from beats or from metadata.
 
