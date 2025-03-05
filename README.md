@@ -1,7 +1,9 @@
 # prompt2prose
-this repo contains code for llms to take in story beats and produce prose.
+The prompt2prose system uses a light-weight multi-agentic pipeline to transform simple story beats into coherent, polished narratives.
 
-This repo contains a dockerfile users can download alongside the code and run the experiment with prompt2pose models. This docker will serve users with an agentic workflow which will generate stories from beats or from metadata.
+![prompt2prose](./assets/prompt2prose pipeline.png)
+
+This repo also contains a dockerfile users can download alongside the code and run the experiment with prompt2pose models. This docker will serve users with an agentic workflow which will generate stories from beats or from metadata.
 
 ## How to run
 To run, users should install docker locally on their machine and make an account. Once docker in installed, the dockerfile must be built. To build this docker locally:
@@ -15,6 +17,47 @@ Once the docker is built, run the container with:
 `docker run -e OPENAI_KEY='your_openai_api_key' -p 8000:8000 image_name`
 
 This generates several endpoints meant to help aspiring writers flesh out stories and brainstorm creative writing.
+
+## Multi-Agentic Pipeline
+
+The main workflow is orchestrated by the BeatToStory class, which coordinates several specialized AI agents that each handle different aspects of the story creation process:
+
+### Context Generation (get_context())
+- The ContextAgent analyzes each beat to extract key scene details
+- It builds a JSON representation of the setting (location, important details)
+- It tracks characters and their status (on/off stage)
+- Each beat's context is compared with the previous beat's context to maintain continuity
+
+### Metadata Enhancement (update_context_with_meta())
+- If the user provides metadata, the MetadataAgent enriches the context
+- Adds character profiles, setting notes, and other details
+- This helps the other agents understand the broader story world
+
+### Story Generation (generate_story())
+For each pair of beats, the system:
+
+- Uses ProseAgent to craft a connecting passage (100-150 words)
+- Optionally applies genre/style transformations with StyleGenreAgent
+- Validates narrative consistency with StoryAgent
+- Checks length requirements with LengthAgent
+-= If any check fails, it retries up to a configurable number of attempts
+
+### Story Editing (edit_story())
+
+- The FlowAgent performs final editing on the complete story
+- It improves language flow, ensures stylistic variation
+- Maintains the original plot and context while polishing the text
+
+### Agent Interactions
+What makes this system powerful is how the agents build upon each other's work:
+
+1. The ContextAgent outputs structured scene data that helps the ProseAgent maintain continuity
+2. The ProseAgent focuses on bridging beats creatively while respecting the established context
+3. The StoryAgent and LengthAgent act as quality control, ensuring each passage meets requirements
+4. The optional StyleGenreAgent can transform passages to match specific writing styles or genres
+5. The FlowAgent takes a holistic view, ensuring the finished story reads smoothly as a complete work
+
+This multi-agent approach leverages the strengths of specialized AI components while maintaining overall narrative coherence, resulting in stories that flow naturally despite being generated from discrete beats.
 
 ### Endpoints
 
